@@ -8,7 +8,6 @@
             [ring.middleware.session.cookie :as cookie]
             [ring.adapter.jetty :as jetty]
             [ring.middleware.basic-authentication :as basic]
-            [cemerick.drawbridge :as drawbridge]
             [webhook-bridge.output.idobata]
             [webhook-bridge.input.cloudhost]
             [environ.core :refer [env]]))
@@ -27,12 +26,7 @@
        {:status 200
         :headers {"Content-Type" "text/plain"}
         :body (pr-str ["Hello" :from 'Heroku])})
-  (POST "/hooktest/:hook" request
-        (pr-str request)
-        )
   (POST "/hook/:hook" {body :body {hook-key :hook} :params}
-        (pr-str HOOKS)
-        (pr-str hook-key)
         (let [hook (get HOOKS hook-key)]
           (if (not hook)
             (route/not-found (slurp (io/resource "404.html")))
