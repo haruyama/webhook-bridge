@@ -29,7 +29,7 @@
         :headers {"Content-Type" "text/plain"}
         :body (pr-str ["Hello" :from 'Heroku])})
   (GET "/:hook" [hook]
-       (client/post "https://idobata.io/hook/4167dc8e-7da8-4d41-ada7-5e1701ed2ffa" (java.net.URLEncoder/encode hook "UTF-8"))
+       (client/post "https://idobata.io/hook/4167dc8e-7da8-4d41-ada7-5e1701ed2ffa" {:body (java.net.URLEncoder/encode hook "UTF-8")})
        {:status 200
         :headers {"Content-Type" "text/plain"}
         :body (pr-str hook)})
