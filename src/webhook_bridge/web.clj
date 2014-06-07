@@ -9,6 +9,7 @@
             [ring.adapter.jetty :as jetty]
             [ring.middleware.basic-authentication :as basic]
             [cemerick.drawbridge :as drawbridge]
+            [clj-http.client :as client]
             [environ.core :refer [env]]))
 
 (defn- authenticated? [user pass]
@@ -27,6 +28,11 @@
        {:status 200
         :headers {"Content-Type" "text/plain"}
         :body (pr-str ["Hello" :from 'Heroku])})
+  (GET "/:hook" [hook]
+       (client/post "https://idobata.io/hook/4167dc8e-7da8-4d41-ada7-5e1701ed2ffa" (java.net.URLEncoder/encode hook "UTF-8"))
+       {:status 200
+        :headers {"Content-Type" "text/plain"}
+        :body (pr-str hook)})
   (ANY "*" []
        (route/not-found (slurp (io/resource "404.html")))))
 
