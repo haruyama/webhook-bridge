@@ -9,31 +9,42 @@
             [ring.adapter.jetty :as jetty]
             [ring.middleware.basic-authentication :as basic]
             [cemerick.drawbridge :as drawbridge]
-            [clj-http.client :as client]
+            [webhook-bridge.output.idobata]
+            [webhook-bridge.input.cloudhost]
             [environ.core :refer [env]]))
 
-(defn- authenticated? [user pass]
-  ;; TODO: heroku config:add REPL_USER=[...] REPL_PASSWORD=[...]
-  (= [user pass] [(env :repl-user false) (env :repl-password false)]))
-
-(def ^:private drawbridge
-  (-> (drawbridge/ring-handler)
-      (session/wrap-session)
-      (basic/wrap-basic-authentication authenticated?)))
+(def HOOKS
+  {"tokyo.clj" {
+          :input  webhook-bridge.input.cloudhost/input
+          :output webhook-bridge.output.idobata/output
+          :output_endpoint "https://idobata.io/hook/4167dc8e-7da8-4d41-ada7-5e1701ed2ffa"
+          :options {"project" "haruyama/webhooktest" }
+          }
+   })
 
 (defroutes app
-  (ANY "/repl" {:as req}
-       (drawbridge req))
   (GET "/" []
        {:status 200
         :headers {"Content-Type" "text/plain"}
         :body (pr-str ["Hello" :from 'Heroku])})
-  (GET "/:hook" [hook]
-       (client/post "https://idobata.io/hook/4167dc8e-7da8-4d41-ada7-5e1701ed2ffa" {:body (java.net.URLEncoder/encode hook "UTF-8")})
-       {:status 200
-        :headers {"Content-Type" "text/plain"}
-        :body (pr-str hook)})
-  (ANY "*" []
+  (POST "/hooktest/:hook" request
+        (pr-str request)
+        )
+  (POST "/hook/:hook" {body :body {hook-key :hook} :params}
+        (pr-str HOOKS)
+        (pr-str hook-key)
+        (let [hook (get HOOKS hook-key)]
+          (if (not hook)
+            (route/not-found (slurp (io/resource "404.html")))
+            (do
+              ((hook :output)
+               (hook :output_endpoint)
+               ((hook :input) body (hook :options)))
+              {:status 200
+               :headers {"Content-Type" "text/plain"}
+               :body (pr-str hook-key)})
+            )))
+  (ANY " *" []
        (route/not-found (slurp (io/resource "404.html")))))
 
 (defn wrap-error-page [handler]
